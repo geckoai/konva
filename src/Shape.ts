@@ -663,6 +663,18 @@ export class Shape<
 
       drawFunc.call(this, context, this);
     }
+
+    if (this.isInTransformer) {
+      const scaleX = this.getStage()?.scaleX();
+      if (scaleX) {
+        context.strokeStyle = 'rgb(29, 172, 255)';
+        context.lineWidth = 0.5 / scaleX;
+        context.strokeRect(0, 0, this.width(), this.height());
+      }
+    }
+
+
+
     context.restore();
     return this;
   }

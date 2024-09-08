@@ -140,6 +140,7 @@ export type KonvaEventListener<This, EventType> = (
  * @@nodeParams
  */
 export abstract class Node<Config extends NodeConfig = NodeConfig> {
+  isInTransformer = false;
   _id = idCounter++;
   eventListeners: {
     [index: string]: Array<{ name: string; handler: Function }>;

@@ -33,6 +33,26 @@ export interface ContainerConfig extends NodeConfig {
 export abstract class Container<
   ChildType extends Node = Node
 > extends Node<ContainerConfig> {
+  static getTotalBox(boxes: any[]) {
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    boxes.forEach((box) => {
+      minX = Math.min(minX, box.x);
+      minY = Math.min(minY, box.y);
+      maxX = Math.max(maxX, box.x + box.width);
+      maxY = Math.max(maxY, box.y + box.height);
+    });
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+    };
+  }
+
   children: Array<ChildType> = [];
 
   /**
@@ -343,6 +363,32 @@ export abstract class Container<
     });
     this._requestDraw();
   }
+
+  public getTotalRect() {
+    return Container.getTotalBox(
+      this.children.map((node) => {
+        if (node instanceof Container) {
+          return (node as any).getTotalRect();
+        }
+        const scale = node.scale();
+        if (scale) {
+          return {
+            x: Math.round(node.x()),
+            y: Math.round(node.y()),
+            width: Math.round(node.width() * scale.x),
+            height: Math.round(node.height() * scale.y),
+          };
+        }
+
+        return {
+          x: Math.round(node.x()),
+          y: Math.round(node.y()),
+          width: Math.round(node.width()),
+          height: Math.round(node.height()),
+        };
+      })
+    );
+  }
   drawScene(can?: SceneCanvas, top?: Node, bufferCanvas?: SceneCanvas) {
     var layer = this.getLayer()!,
       canvas = can || (layer && layer.getCanvas()),
@@ -363,6 +409,23 @@ export abstract class Container<
       context.restore();
     } else {
       this._drawChildren('drawScene', canvas, top, bufferCanvas);
+
+      const scale = layer.getStage().scaleX();
+      if (this.isInTransformer) {
+        const totalRect = this.getTotalRect();
+        context.save();
+        const m = this.getAbsoluteTransform(top).getMatrix();
+        context.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
+        context.strokeStyle = 'rgb(29, 172, 255)';
+        context.lineWidth = 0.5 / scale;
+        context.strokeRect(
+          totalRect.x,
+          totalRect.y,
+          totalRect.width,
+          totalRect.height
+        );
+        context.restore();
+      }
     }
     return this;
   }
